@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111a1b" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Painel de gestão e acompanhamento de pedidos têxteis do Agreste Pernambucano.">
+    <title>Fio a Fio — Gestão de pedidos</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23175f63'/%3E%3Cpath d='M9 23c4-9 10-14 15-14M8 17c3-5 7-8 11-8M13 25c3-5 7-8 11-9' stroke='%23f4d9b8' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+    <script>
+      // Tema aplicado antes da pintura para evitar "piscar" ao recarregar.
+      (function () {
+        var theme;
+        try { theme = localStorage.getItem("fio-a-fio-theme"); } catch (e) {}
+        if (theme !== "dark" && theme !== "light") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+      // Endereço da API (com o sufixo /api). Vazio = modo de demonstração com dados fictícios.
+      // Quando o backend estiver publicado, coloque o endereço aqui, ex.: "https://minha-api.fly.dev/api".
+      // Para testar sem editar o arquivo, abra o site com ?api=http://localhost:8080/api
+      window.FIO_A_FIO_API_BASE = "";
+      (function () {
+        var param = new URLSearchParams(location.search).get("api");
+        if (param && /^https?:\/\//.test(param)) window.FIO_A_FIO_API_BASE = param;
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+        <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+        <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+        <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+        <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M8.1 15.9 20 4"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol>
+        <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      </defs>
+    </svg>
+
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navegação">
+        <a class="brand" href="#painel">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M9 23c4-9 10-14 15-14M8 17c3-5 7-8 11-8M13 25c3-5 7-8 11-9"/></svg></span>
+          <span class="brand-copy"><strong>fio a fio</strong><small>gestão têxtil</small></span>
+        </a>
+
+        <nav class="main-nav" aria-label="Menu principal">
+          <p class="nav-label">Menu</p>
+          <a class="nav-link" href="#painel" data-view="painel"><svg class="icon"><use href="#i-grid"/></svg>Painel geral</a>
+          <a class="nav-link" href="#cadastro" data-view="cadastro"><svg class="icon"><use href="#i-plus"/></svg>Novo pedido</a>
+          <a class="nav-link" href="#consulta" data-view="consulta"><svg class="icon"><use href="#i-search"/></svg>Consultar pedidos<span class="nav-count" id="nav-open-count" hidden></span></a>
+          <a class="nav-link" href="#historico" data-view="historico"><svg class="icon"><use href="#i-history"/></svg>Histórico</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="source-card" id="source-card">
+            <span class="source-dot" aria-hidden="true"></span>
+            <div><strong id="source-title">Modo demonstração</strong><p id="source-text">Dados fictícios desta sessão. Nada é salvo no servidor.</p></div>
+          </div>
+          <div class="profile">
+            <span class="avatar avatar-lg" aria-hidden="true">MA</span>
+            <span class="profile-copy"><strong>Maria Almeida</strong><small>Ateliê Girassol · Caruaru</small></span>
+          </div>
+        </div>
+      </aside>
+      <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+      <div class="main-area">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
+          <div class="breadcrumb"><span>Ateliê Girassol</span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron"/></svg><strong id="breadcrumb-current">Painel geral</strong></div>
+          <div class="topbar-actions">
+            <span class="today-date" id="today-date"></span>
+            <button class="icon-button" id="theme-toggle" type="button" aria-label="Ativar modo escuro" title="Alternar tema">
+              <svg class="icon icon-moon"><use href="#i-moon"/></svg><svg class="icon icon-sun"><use href="#i-sun"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <main class="page-content" id="conteudo" tabindex="-1">
+          <!-- PAINEL -->
+          <section class="view" id="view-painel" aria-labelledby="dashboard-title">
+            <div class="page-heading">
+              <div>
+                <p class="eyebrow" id="dashboard-date"></p>
+                <h1 id="dashboard-title"><span id="greeting">Olá</span>, Maria</h1>
+                <p class="heading-subtitle" id="dashboard-summary">Carregando o resumo da produção…</p>
+              </div>
+              <a class="button button-primary" href="#cadastro"><svg class="icon"><use href="#i-plus"/></svg>Novo pedido</a>
+            </div>
+
+            <div class="stats-grid">
+              <article class="stat-card">
+                <span class="stat-icon tone-petroleum"><svg class="icon"><use href="#i-scissors"/></svg></span>
+                <div><p class="stat-label">Em andamento</p><p class="stat-value" id="stat-progress">—</p><p class="stat-note">produção, preparação, coleta e transporte</p></div>
+              </article>
+              <article class="stat-card">
+                <span class="stat-icon tone-sand"><svg class="icon"><use href="#i-clock"/></svg></span>
+                <div><p class="stat-label">Pendentes</p><p class="stat-value" id="stat-pending">—</p><p class="stat-note">aguardando início da produção</p></div>
+              </article>
+              <article class="stat-card">
+                <span class="stat-icon tone-blue"><svg class="icon"><use href="#i-calendar"/></svg></span>
+                <div><p class="stat-label">Entregas em 7 dias</p><p class="stat-value" id="stat-week">—</p><p class="stat-note">pedidos abertos com prazo próximo</p></div>
+              </article>
+              <article class="stat-card stat-card-alert" id="stat-late-card">
+                <span class="stat-icon tone-terracotta"><svg class="icon"><use href="#i-alert"/></svg></span>
+                <div><p class="stat-label">Atrasados</p><p class="stat-value" id="stat-late">—</p><p class="stat-note">prazo vencido e ainda não entregues</p></div>
+              </article>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="panel" aria-labelledby="recent-title">
+                <div class="panel-heading">
+                  <div><h2 id="recent-title">Pedidos recentes</h2><p>Os últimos pedidos cadastrados.</p></div>
+                  <a class="text-button" href="#consulta">Ver todos<svg class="icon icon-sm"><use href="#i-arrow"/></svg></a>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table dashboard-table">
+                    <thead><tr><th scope="col">Pedido</th><th scope="col">Cliente</th><th scope="col">Entrega</th><th scope="col">Status</th></tr></thead>
+                    <tbody id="dashboard-orders"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="panel" aria-labelledby="pipeline-title">
+                <div class="panel-heading">
+                  <div><h2 id="pipeline-title">Fluxo da produção</h2><p>Pedidos abertos por etapa.</p></div>
+                </div>
+                <div class="pipeline">
+                  <div class="donut" id="donut" role="img" aria-label="Distribuição dos pedidos por etapa">
+                    <div class="donut-center"><strong id="donut-total">—</strong><span>abertos</span></div>
+                  </div>
+                  <ul class="pipeline-list" id="pipeline-list"></ul>
+                </div>
+              </section>
+            </div>
+
+            <section class="panel" aria-labelledby="deliveries-title">
+              <div class="panel-heading">
+                <div><h2 id="deliveries-title">Próximas entregas</h2><p>Pedidos abertos ordenados pelo prazo. Atrasados aparecem primeiro.</p></div>
+                <a class="text-button" href="#historico">Ver histórico<svg class="icon icon-sm"><use href="#i-arrow"/></svg></a>
+              </div>
+              <div class="delivery-list" id="delivery-list"></div>
+            </section>
+          </section>
+
+          <!-- CADASTRO -->
+          <section class="view" id="view-cadastro" aria-labelledby="registration-title">
+            <div class="page-heading">
+              <div><p class="eyebrow">Produção</p><h1 id="registration-title">Novo pedido</h1><p class="heading-subtitle">Preencha os dados para começar a acompanhar o pedido.</p></div>
+            </div>
+            <form class="panel form-panel" id="order-form" novalidate>
+              <fieldset class="form-section">
+                <legend class="form-section-heading"><span class="section-number">1</span><span><strong>Cliente e produto</strong><small>Quem pediu e o que será produzido.</small></span></legend>
+                <div class="form-grid">
+                  <label class="field field-wide"><span class="field-label">Nome do cliente <b aria-hidden="true">*</b></span><input name="client" autocomplete="organization" maxlength="120" placeholder="Ex.: Boutique Flor de Mandacaru" list="client-suggestions" required><small class="field-error"></small></label>
+                  <datalist id="client-suggestions"></datalist>
+                  <label class="field"><span class="field-label">Telefone do cliente</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(81) 9 0000-0000"><small class="field-error"></small></label>
+                  <label class="field field-wide"><span class="field-label">Produto <b aria-hidden="true">*</b></span><input name="product" maxlength="120" placeholder="Ex.: Conjunto de linho" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Quantidade de peças <b aria-hidden="true">*</b></span><input name="quantity" type="number" inputmode="numeric" min="1" step="1" placeholder="Ex.: 50" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Valor por peça (R$)</span><input name="price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"><small class="field-hint" id="price-total"></small></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="form-section">
+                <legend class="form-section-heading"><span class="section-number">2</span><span><strong>Rota e prazos</strong><small>De onde sai, para onde vai e quando precisa chegar.</small></span></legend>
+                <div class="form-grid">
+                  <label class="field"><span class="field-label">Origem <b aria-hidden="true">*</b></span><input name="origin" maxlength="150" value="Caruaru" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Cidade de destino <b aria-hidden="true">*</b></span><input name="destination" maxlength="150" placeholder="Ex.: Recife" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Região de destino <b aria-hidden="true">*</b></span><input name="destinationRegion" maxlength="100" placeholder="Ex.: Região Metropolitana" required><small class="field-hint">Usada nos alertas de atraso por região.</small><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Data do pedido <b aria-hidden="true">*</b></span><input name="orderDate" type="date" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Entrega prevista <b aria-hidden="true">*</b></span><input name="dueDate" type="date" required><small class="field-error"></small></label>
+                  <label class="field"><span class="field-label">Responsável <b aria-hidden="true">*</b></span><input name="responsible" maxlength="100" value="Maria Almeida" autocomplete="name" required><small class="field-error"></small></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="form-section">
+                <legend class="form-section-heading"><span class="section-number">3</span><span><strong>Produção</strong><small>Etapa atual e informações para a equipe.</small></span></legend>
+                <div class="form-grid">
+                  <label class="field"><span class="field-label">Etapa atual</span><select name="stage"><option value="PENDENTE">Pendente</option><option value="EM_PRODUCAO">Em produção</option><option value="EM_PREPARACAO">Em preparação</option><option value="AGUARDANDO_COLETA">Aguardando coleta</option><option value="EM_TRANSPORTE">Em transporte</option></select></label>
+                  <div class="field"><span class="field-label" id="priority-label">Prioridade</span>
+                    <div class="segmented" role="radiogroup" aria-labelledby="priority-label">
+                      <label><input type="radio" name="priority" value="Normal" checked><span>Normal</span></label>
+                      <label><input type="radio" name="priority" value="Alta"><span>Alta</span></label>
+                    </div>
+                  </div>
+                  <label class="field field-full"><span class="field-label">Observações</span><textarea name="notes" rows="3" maxlength="1000" placeholder="Tecido, cores, grade de tamanhos, acabamentos…"></textarea></label>
+                </div>
+              </fieldset>
+
+              <div class="form-actions">
+                <p><b aria-hidden="true">*</b> Campos obrigatórios</p>
+                <div>
+                  <button class="button button-ghost" type="reset">Limpar</button>
+                  <button class="button button-primary" type="submit"><span class="button-label">Salvar pedido</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <!-- CONSULTA -->
+          <section class="view" id="view-consulta" aria-labelledby="consultation-title">
+            <div class="page-heading">
+              <div><p class="eyebrow">Acompanhamento</p><h1 id="consultation-title">Consultar pedidos</h1><p class="heading-subtitle">Encontre um pedido e veja em que etapa ele está.</p></div>
+              <a class="button button-primary" href="#cadastro"><svg class="icon"><use href="#i-plus"/></svg>Novo pedido</a>
+            </div>
+            <section class="panel" aria-label="Lista de pedidos">
+              <div class="filter-bar">
+                <label class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="order-search" type="search" placeholder="Buscar por código, cliente ou produto" aria-label="Buscar pedidos" autocomplete="off"></label>
+                <label class="select-field"><span class="sr-only">Filtrar por status</span><select id="status-filter"><option value="">Todos os status</option><option value="ABERTOS">Somente abertos</option><option value="ATRASADO">Somente atrasados</option><option value="PENDENTE">Pendente</option><option value="EM_PRODUCAO">Em produção</option><option value="EM_PREPARACAO">Em preparação</option><option value="AGUARDANDO_COLETA">Aguardando coleta</option><option value="EM_TRANSPORTE">Em transporte</option><option value="ENTREGUE">Entregue</option><option value="CANCELADO">Cancelado</option></select></label>
+                <label class="select-field"><span class="sr-only">Ordenar por</span><select id="sort-order"><option value="recent">Mais recentes</option><option value="due">Prazo mais próximo</option><option value="client">Cliente (A–Z)</option></select></label>
+                <button class="button button-ghost" id="clear-filters" type="button" hidden>Limpar filtros</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table consultation-table">
+                  <thead><tr><th scope="col">Pedido</th><th scope="col">Cliente</th><th scope="col">Produto</th><th scope="col" class="num">Qtd.</th><th scope="col">Entrega</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+                  <tbody id="consultation-orders"></tbody>
+                </table>
+              </div>
+              <div class="table-bottom"><span id="results-count" aria-live="polite"></span><span class="source-pill" id="data-source-label">Dados de demonstração</span></div>
+            </section>
+          </section>
+
+          <!-- HISTÓRICO -->
+          <section class="view" id="view-historico" aria-labelledby="history-title">
+            <div class="page-heading">
+              <div><p class="eyebrow">Acompanhamento</p><h1 id="history-title">Histórico</h1><p class="heading-subtitle">Todas as movimentações registradas, do cadastro à entrega.</p></div>
+              <label class="select-field"><span class="sr-only">Período</span><select id="history-period"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todo o período</option></select></label>
+            </div>
+            <section class="panel" aria-label="Linha do tempo">
+              <div class="timeline" id="timeline" aria-live="polite"></div>
+            </section>
+          </section>
+
+          <footer class="page-footer">Fio a Fio · feito no Agreste Pernambucano</footer>
+        </main>
+      </div>
+    </div>
+
+    <!-- Detalhe do pedido -->
+    <dialog class="drawer" id="order-drawer" aria-labelledby="drawer-title">
+      <div class="drawer-header">
+        <div><p class="eyebrow" id="drawer-client"></p><h2 id="drawer-title">Pedido</h2></div>
+        <button class="icon-button" type="button" data-close-drawer aria-label="Fechar detalhes"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
